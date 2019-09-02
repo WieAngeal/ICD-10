@@ -1,0 +1,70 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+from lxml import etree
+
+
+SERVER_URL = 'http://www.a-hospital.com'
+ICD_URL = '/w/ICD-10'
+
+def check_link(url):
+    try:
+        r = requests.get(url)
+        r.raise_for_status()
+        r.encoding = r.apparent_encoding
+        return r.text
+    except:
+        print('无法链接服务器！！！')
+
+
+def get_contents(ulist,rurl):
+    soup = BeautifulSoup(rurl,'lxml')
+    trs = soup.find_all('table', attrs='wikitable')
+
+    for tr in trs:
+        for tr in tr.find_all('tr'):
+            icd_number = ''
+            icd_range = ''
+            icd_title = ''
+            icd_url = ''
+
+
+            attrs = tr.find_all('td')
+            icd_number = attrs[0].string
+            icd_range = attrs[1].string
+
+            if str(attrs[1].find('a')) == 'None':
+                print("no attrs...")
+            else:
+                icd_title = attrs[1].find('a').get('title')
+
+            if str(attrs[1].find('a')) == 'None':
+                print("no attrs...")
+            else:
+                icd_url = attrs[1].find('a').get('href')
+                subicd = check_link(SERVER_URL+icd_url)
+                soup = BeautifulSoup(subicd, 'lxml')
+
+                html = etree.HTML(subicd)
+                icd_html = etree.tostring(html)
+                html_data = html.xpath('//*[@id="bodyContent"]/ul/li')
+                #html_data = html.xpath('/html/body/content/bodyContent/ul/li')
+                for i in html_data:
+                    dis_title = i.find('a').text
+                    dis_url = i.find('a').get('href')
+                    out = open('icd_10.csv', 'a', newline='', encoding='UTF-8')
+                    line = [dis_title, dis_url]
+                    csv_write = csv.writer(out, dialect='excel')
+                    csv_write.writerow(line)
+
+
+            out = open('icd_10.csv', 'a', newline='', encoding='UTF-8')
+            line = [icd_number, icd_range, icd_title, icd_url]
+            csv_write = csv.writer(out, dialect='excel')
+            csv_write.writerow(line)
+
+urli = []
+a = check_link(SERVER_URL+ICD_URL)
+get_contents(urli, a)
+
+#def __if__ =  __main__:
